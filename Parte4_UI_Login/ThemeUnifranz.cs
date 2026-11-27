@@ -1,11 +1,120 @@
 // ============================================================================
-// PARTE 4 (A): PALETA INSTITUCIONAL, GDI+ LOGO Y ESTILOS VISUALES UNIFRANZ
+// PARTE 4 (B): PALETA INSTITUCIONAL, CONTROLES MODERNOS Y GDI+ UNIFRANZ
 // Archivo: Parte4_UI_Login/ThemeUnifranz.cs
 // ============================================================================
 
+using System.ComponentModel;
 using System.Drawing.Drawing2D;
 
 namespace FundacionUnifranz.UI;
+
+/// <summary>
+/// Panel moderno con esquinas redondeadas y borde hairline sin parpadeo.
+/// </summary>
+public sealed class PanelRedondeado : Panel
+{
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int Radio { get; set; } = 12;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Color ColorBorde { get; set; } = ThemeUnifranz.BordeSuave;
+
+    public PanelRedondeado()
+    {
+        DoubleBuffered = true;
+        BackColor = Color.White;
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        if (Width <= 2 || Height <= 2) return;
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+
+        var rect = new Rectangle(0, 0, Width - 1, Height - 1);
+        using var path = ThemeUnifranz.CrearRutaRedondeada(rect, Radio);
+        using var bgBrush = new SolidBrush(BackColor);
+        using var borderPen = new Pen(ColorBorde, 1f);
+
+        g.Clear(ThemeUnifranz.ResolverFondoPadre(this));
+        g.FillPath(bgBrush, path);
+        g.DrawPath(borderPen, path);
+    }
+}
+
+/// <summary>
+/// Boton moderno con esquinas redondeadas y transicion suave al pasar el cursor.
+/// </summary>
+public sealed class BotonRedondeado : Button
+{
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int Radio { get; set; } = 8;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Color ColorNormal { get; set; } = ThemeUnifranz.TealPrincipal;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Color ColorHover { get; set; } = ThemeUnifranz.TealHover;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Color ColorBorde { get; set; } = Color.Transparent;
+
+    private bool _hover;
+
+    public BotonRedondeado()
+    {
+        FlatStyle = FlatStyle.Flat;
+        FlatAppearance.BorderSize = 0;
+        Cursor = Cursors.Hand;
+        DoubleBuffered = true;
+        ForeColor = Color.White;
+        Font = ThemeUnifranz.FuenteCuerpoBold;
+    }
+
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        _hover = true;
+        Invalidate();
+        base.OnMouseEnter(e);
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        _hover = false;
+        Invalidate();
+        base.OnMouseLeave(e);
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        if (Width <= 2 || Height <= 2) return;
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+        var rect = new Rectangle(0, 0, Width - 1, Height - 1);
+        using var path = ThemeUnifranz.CrearRutaRedondeada(rect, Radio);
+        using var fill = new SolidBrush(_hover ? ColorHover : ColorNormal);
+
+        g.Clear(ThemeUnifranz.ResolverFondoPadre(this));
+        g.FillPath(fill, path);
+
+        if (ColorBorde != Color.Transparent)
+        {
+            using var pen = new Pen(ColorBorde, 1f);
+            g.DrawPath(pen, path);
+        }
+
+        TextRenderer.DrawText(
+            g,
+            Text,
+            Font,
+            rect,
+            ForeColor,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine
+        );
+    }
+}
 
 /// <summary>
 /// Centraliza colores, tipografia, estilizado de tablas y dibujo vectorial GDI+
@@ -16,6 +125,7 @@ public static class ThemeUnifranz
     public static readonly Color TealPrincipal = Color.FromArgb(0, 123, 143);     // #007B8F
     public static readonly Color TealHover     = Color.FromArgb(7, 89, 105);      // #075969
     public static readonly Color TealSidebar   = Color.FromArgb(6, 74, 87);       // #064A57
+    public static readonly Color TealSuave     = Color.FromArgb(228, 245, 248);   // #E4F5F8
     public static readonly Color CoralAcento   = Color.FromArgb(230, 90, 40);     // #E65A28
     public static readonly Color CoralHover    = Color.FromArgb(201, 73, 27);     // #C9491B
     public static readonly Color FondoLienzo   = Color.FromArgb(248, 250, 252);   // #F8FAFC
@@ -34,42 +144,58 @@ public static class ThemeUnifranz
     public static readonly Font FuenteMono       = new("Consolas", 9.5f, FontStyle.Regular);
     public static readonly Font FuenteKpiNumero  = new("Segoe UI", 22f, FontStyle.Bold);
 
-    public static Button CrearBotonPrimario(string texto, Color? colorFondo = null, int ancho = 155, int alto = 38)
+    public static Color ResolverFondoPadre(Control? control)
     {
-        var bg = colorFondo ?? TealPrincipal;
-        var btn = new Button
+        var p = control?.Parent;
+        while (p is not null && (p.BackColor == Color.Transparent || p.BackColor.A < 255))
         {
-            Text = texto,
-            Width = ancho,
-            Height = alto,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = bg,
-            ForeColor = Color.White,
-            Font = FuenteCuerpoBold,
-            Cursor = Cursors.Hand
-        };
-        btn.FlatAppearance.BorderSize = 0;
-        btn.FlatAppearance.MouseOverBackColor = bg == CoralAcento ? CoralHover : TealHover;
-        return btn;
+            p = p.Parent;
+        }
+        return p?.BackColor ?? FondoLienzo;
     }
 
-    public static Button CrearBotonSecundario(string texto, int ancho = 135, int alto = 38)
+    public static GraphicsPath CrearRutaRedondeada(Rectangle bounds, int radio)
     {
-        var btn = new Button
+        int d = radio * 2;
+        var path = new GraphicsPath();
+        path.AddArc(bounds.X, bounds.Y, d, d, 180, 90);
+        path.AddArc(bounds.Right - d, bounds.Y, d, d, 270, 90);
+        path.AddArc(bounds.Right - d, bounds.Bottom - d, d, d, 0, 90);
+        path.AddArc(bounds.X, bounds.Bottom - d, d, d, 90, 90);
+        path.CloseFigure();
+        return path;
+    }
+
+    public static BotonRedondeado CrearBotonPrimario(string texto, Color? colorFondo = null, int ancho = 155, int alto = 38)
+    {
+        var bg = colorFondo ?? TealPrincipal;
+        return new BotonRedondeado
         {
             Text = texto,
             Width = ancho,
             Height = alto,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Color.White,
-            ForeColor = TextoOscuro,
-            Font = FuenteCuerpoBold,
-            Cursor = Cursors.Hand
+            Radio = 8,
+            ColorNormal = bg,
+            ColorHover = bg == CoralAcento ? CoralHover : TealHover,
+            ForeColor = Color.White,
+            Font = FuenteCuerpoBold
         };
-        btn.FlatAppearance.BorderColor = BordeSuave;
-        btn.FlatAppearance.BorderSize = 1;
-        btn.FlatAppearance.MouseOverBackColor = FondoLienzo;
-        return btn;
+    }
+
+    public static BotonRedondeado CrearBotonSecundario(string texto, int ancho = 135, int alto = 38)
+    {
+        return new BotonRedondeado
+        {
+            Text = texto,
+            Width = ancho,
+            Height = alto,
+            Radio = 8,
+            ColorNormal = Color.White,
+            ColorHover = FondoLienzo,
+            ColorBorde = BordeSuave,
+            ForeColor = TextoOscuro,
+            Font = FuenteCuerpoBold
+        };
     }
 
     public static void EstilizarDataGrid(DataGridView grid)
@@ -87,15 +213,15 @@ public static class ThemeUnifranz
         grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         grid.EnableHeadersVisualStyles = false;
-        grid.ColumnHeadersHeight = 40;
-        grid.RowTemplate.Height = 38;
+        grid.ColumnHeadersHeight = 42;
+        grid.RowTemplate.Height = 40;
 
         grid.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
         {
             BackColor = Color.FromArgb(248, 250, 252),
             ForeColor = TextoSuave,
             Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-            Padding = new Padding(8, 0, 8, 0),
+            Padding = new Padding(10, 0, 10, 0),
             Alignment = DataGridViewContentAlignment.MiddleLeft
         };
 
@@ -104,17 +230,36 @@ public static class ThemeUnifranz
             BackColor = Color.White,
             ForeColor = TextoOscuro,
             Font = FuenteCuerpo,
-            SelectionBackColor = Color.FromArgb(224, 242, 246),
-            SelectionForeColor = Color.FromArgb(6, 74, 87),
-            Padding = new Padding(8, 0, 8, 0)
+            SelectionBackColor = TealSuave,
+            SelectionForeColor = TealSidebar,
+            Padding = new Padding(10, 0, 10, 0)
         };
 
         grid.AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
         {
             BackColor = Color.FromArgb(252, 253, 254),
             ForeColor = TextoOscuro,
-            SelectionBackColor = Color.FromArgb(224, 242, 246),
-            SelectionForeColor = Color.FromArgb(6, 74, 87)
+            SelectionBackColor = TealSuave,
+            SelectionForeColor = TealSidebar
+        };
+
+        // Formato semantico automatico para la columna Estado
+        grid.CellFormatting += (_, e) =>
+        {
+            if (e.ColumnIndex < 0 || e.ColumnIndex >= grid.Columns.Count) return;
+            if ((grid.Columns[e.ColumnIndex].Name == "Estado" || grid.Columns[e.ColumnIndex].Name == "Tipo")
+                && e.Value is string estado && e.CellStyle is not null)
+            {
+                e.CellStyle.Font = FuenteCuerpoBold;
+                e.CellStyle.ForeColor = estado switch
+                {
+                    "Activo" or "Activa" or "Aprobada" or "Ingreso" => VerdeActivo,
+                    "Completado" => TealPrincipal,
+                    "Pendiente" or "En Planificación" => AmbarPend,
+                    "Rechazada" or "Egreso" or "Inactiva" => RojoAlerta,
+                    _ => TextoSuave
+                };
+            }
         };
     }
 
@@ -123,6 +268,7 @@ public static class ThemeUnifranz
     /// </summary>
     public static void DibujarFondoOrigami(Graphics g, Rectangle bounds)
     {
+        if (bounds.Width <= 2 || bounds.Height <= 2) return;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         using var bgBrush = new LinearGradientBrush(
             bounds,
@@ -156,7 +302,7 @@ public static class ThemeUnifranz
         using var scrim = new LinearGradientBrush(
             bounds,
             Color.FromArgb(95, 6, 34, 45),
-            Color.FromArgb(190, 6, 34, 45),
+            Color.FromArgb(195, 6, 34, 45),
             LinearGradientMode.Vertical
         );
         g.FillRectangle(scrim, bounds);
@@ -171,60 +317,64 @@ public static class ThemeUnifranz
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
 
         float r = diametro / 2f;
-        // Sombra suave
         using (var shadow = new SolidBrush(Color.FromArgb(45, 0, 0, 0)))
             g.FillEllipse(shadow, cx - r + 2, cy - r + 5, diametro, diametro);
 
-        // Circulo blanco
         g.FillEllipse(Brushes.White, cx - r, cy - r, diametro, diametro);
         using (var ring = new Pen(Color.FromArgb(225, 238, 242), 1.5f))
             g.DrawEllipse(ring, cx - r, cy - r, diametro, diametro);
 
-        // Globo y alas origami
-        float globeR = r * 0.42f;
-        float globeCy = cy - r * 0.18f;
+        float globeR = r * 0.35f;
+        float globeCy = cy - r * 0.27f;
         using var wingBrush = new SolidBrush(Color.FromArgb(145, 133, 210, 223));
         PointF[] wings =
         {
-            new(cx, globeCy - globeR * 1.05f),
+            new(cx, globeCy - globeR * 1.02f),
             new(cx + globeR * 0.34f, globeCy),
-            new(cx + globeR * 1.45f, globeCy - globeR * 0.25f),
-            new(cx + globeR * 0.45f, globeCy + globeR * 0.32f),
-            new(cx, globeCy + globeR * 0.95f),
-            new(cx - globeR * 0.45f, globeCy + globeR * 0.32f),
-            new(cx - globeR * 1.45f, globeCy - globeR * 0.25f),
+            new(cx + globeR * 1.38f, globeCy - globeR * 0.22f),
+            new(cx + globeR * 0.44f, globeCy + globeR * 0.30f),
+            new(cx, globeCy + globeR * 0.90f),
+            new(cx - globeR * 0.44f, globeCy + globeR * 0.30f),
+            new(cx - globeR * 1.38f, globeCy - globeR * 0.22f),
             new(cx - globeR * 0.34f, globeCy)
         };
         g.FillPolygon(wingBrush, wings);
 
-        using (var globePen = new Pen(Color.FromArgb(91, 185, 200), Math.Max(1.4f, diametro * 0.015f)))
+        using (var globePen = new Pen(Color.FromArgb(91, 185, 200), Math.Max(1.3f, diametro * 0.013f)))
         {
             g.DrawEllipse(globePen, cx - globeR, globeCy - globeR, globeR * 2, globeR * 2);
             g.DrawEllipse(globePen, cx - globeR * 0.5f, globeCy - globeR, globeR, globeR * 2);
             g.DrawLine(globePen, cx - globeR, globeCy, cx + globeR, globeCy);
         }
 
-        // Silueta estilizada central
         using (var figBrush = new SolidBrush(TealPrincipal))
         {
             float headR = globeR * 0.16f;
-            g.FillEllipse(figBrush, cx - headR, globeCy + globeR * 0.05f, headR * 2, headR * 2);
-            using var armPen = new Pen(TealPrincipal, Math.Max(2f, diametro * 0.025f))
+            g.FillEllipse(figBrush, cx - headR, globeCy + globeR * 0.04f, headR * 2, headR * 2);
+            using var armPen = new Pen(TealPrincipal, Math.Max(1.8f, diametro * 0.022f))
             {
                 StartCap = LineCap.Round,
                 EndCap = LineCap.Round
             };
-            g.DrawLine(armPen, cx, globeCy + globeR * 0.52f, cx - globeR * 0.75f, globeCy - globeR * 0.08f);
-            g.DrawLine(armPen, cx, globeCy + globeR * 0.52f, cx + globeR * 0.75f, globeCy - globeR * 0.08f);
-            g.FillRectangle(figBrush, cx - headR * 0.9f, globeCy + globeR * 0.40f, headR * 1.8f, globeR * 0.55f);
+            g.DrawLine(armPen, cx, globeCy + globeR * 0.50f, cx - globeR * 0.72f, globeCy - globeR * 0.06f);
+            g.DrawLine(armPen, cx, globeCy + globeR * 0.50f, cx + globeR * 0.72f, globeCy - globeR * 0.06f);
+            g.FillRectangle(figBrush, cx - headR * 0.85f, globeCy + globeR * 0.38f, headR * 1.7f, globeR * 0.52f);
         }
 
-        // Texto UNIFRANZ + FUNDACION
-        using var fontBrand = new Font("Segoe UI", Math.Max(8f, diametro * 0.13f), FontStyle.Bold);
-        using var fontSub = new Font("Segoe UI", Math.Max(5.5f, diametro * 0.056f), FontStyle.Bold);
-        using var sf = new StringFormat { Alignment = StringAlignment.Center };
+        // Tipografia proporcionada para quedar 100% dentro del medallon sin encimarse
+        using var fontBrand = new Font("Segoe UI", Math.Max(7.5f, diametro * 0.095f), FontStyle.Bold);
+        using var fontSub = new Font("Segoe UI", Math.Max(5.2f, diametro * 0.052f), FontStyle.Bold);
+        using var sf = new StringFormat
+        {
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Near
+        };
+        using var brandBrush = new SolidBrush(TealPrincipal);
+        using var subBrush = new SolidBrush(CoralAcento);
 
-        g.DrawString("UNIFRANZ", fontBrand, new SolidBrush(TealPrincipal), cx, cy + r * 0.25f, sf);
-        g.DrawString("FUNDACIÓN", fontSub, new SolidBrush(CoralAcento), cx + r * 0.26f, cy + r * 0.51f, sf);
+        float brandY = cy + r * 0.16f;
+        float subY = cy + r * 0.49f;
+        g.DrawString("UNIFRANZ", fontBrand, brandBrush, cx, brandY, sf);
+        g.DrawString("FUNDACIÓN", fontSub, subBrush, cx, subY, sf);
     }
 }

@@ -1,5 +1,5 @@
 // ============================================================================
-// PARTE 5 (C): PUNTO DE ENTRADA Y CICLO DE SESION DE LA APLICACION
+// PARTE 5 (C): PUNTO DE ENTRADA CON PANTALLA DE CARGA Y RECUPERACION SQL
 // Archivo: Program.cs
 // ============================================================================
 
@@ -16,10 +16,17 @@ internal static class Program
     {
         ApplicationConfiguration.Initialize();
 
-        // 1. Inicializar motor de base de datos SQLite integrada y servicios
         var database = new DatabaseManager();
         var service = new GestionService(database);
-        service.Inicializar();
+
+        // 1. Pantalla de carga + conexion automatica silenciosa (SQL Server o motor local)
+        using (var splash = new FormSplash(service))
+        {
+            if (splash.ShowDialog() != DialogResult.OK || !splash.InicializadoCorrectamente)
+            {
+                service.ActivarModoLocal();
+            }
+        }
 
         // 2. Ciclo de sesion: permite cerrar sesion y volver al Login limpiamente
         while (true)

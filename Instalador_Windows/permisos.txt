@@ -1,0 +1,19 @@
+ACUERDO DE INSTALACIÓN Y PERMISOS — FUNDACIÓN UNIFRANZ
+========================================================================
+
+Al instalar la aplicación oficial de escritorio "Sistema de Gestión — Fundación UNIFRANZ" en esta computadora Windows, autorizas los siguientes permisos necesarios para su funcionamiento:
+
+1. INSTALACIÓN DE APLICACIÓN NATIVA DE ESCRITORIO
+   - Copia de la aplicación nativa FundacionUNIFRANZ.exe, icono oficial centrado y archivos de configuración en la carpeta que elijas (Program Files, Escritorio, Disco C: u otra ruta).
+   - No requiere navegador web ni páginas externas para ejecutarse.
+
+2. BASE DE DATOS INTEGRADA, SQL SERVER Y SINCRONIZACIÓN GLOBAL
+   - Almacenamiento local persistente en la computadora para trabajar sin conexión o de forma independiente.
+   - Conexión directa opcional a Microsoft SQL Server (FundacionUnifranzDB) en red local o servidor compartido.
+   - Sincronización automática de interfaz (interfaz_global.json) con las actualizaciones publicadas por el Programador para PC y Android.
+
+3. ACCESOS DIRECTOS Y REGISTRO DE APLICACIONES DE WINDOWS
+   - Creación opcional de acceso directo en el Escritorio y Menú Inicio con el logotipo oficial de Fundación UNIFRANZ.
+   - Registro del desinstalador oficial en "Aplicaciones instaladas" de Windows.
+
+Haz clic en "Acepto" para continuar con la selección de sede, servidor de base de datos y carpeta de destino.

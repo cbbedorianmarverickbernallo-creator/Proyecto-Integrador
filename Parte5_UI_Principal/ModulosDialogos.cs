@@ -1,5 +1,5 @@
 // ============================================================================
-// PARTE 5 (A): DIALOGOS MODALES CRUD (ACTIVIDAD, PROYECTO, USUARIO)
+// PARTE 5 (A): FORMULARIOS MODALES CRUD (10 TABLAS RELACIONALES)
 // Archivo: Parte5_UI_Principal/ModulosDialogos.cs
 // ============================================================================
 
@@ -8,223 +8,132 @@ using FundacionUnifranz.Models;
 namespace FundacionUnifranz.UI;
 
 // ----------------------------------------------------------------------------
-// 1. DIALOGO CREAR / EDITAR ACTIVIDAD
+// 1. DIALOGO CREAR / EDITAR ACTIVIDAD OPERATIVA (FK Proyecto, Sede, Admin)
 // ----------------------------------------------------------------------------
 public sealed class DialogoActividad : Form
 {
-    private readonly ComboBox _cmbProyecto;
-    private readonly ComboBox _cmbCategoria;
-    private readonly ComboBox _cmbSede;
-    private readonly ComboBox _cmbEstado;
-    private readonly TextBox _txtResponsable;
-    private readonly NumericUpDown _numBeneficiarios;
-    private readonly DateTimePicker _dtpFecha;
-    private readonly CheckBox _chkEventoMes;
-    private readonly TextBox _txtDescripcion;
-    private readonly List<Proyecto> _proyectos;
-    private readonly int _idExistente;
-    private readonly string _codigoExistente;
+    public ActividadRegistro Resultado { get; private set; }
 
-    public ActividadRegistro Resultado { get; private set; } = new();
+    private readonly ComboBox _cboProyecto = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly TextBox _txtTitulo = new() { Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboSede = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboResponsable = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly NumericUpDown _numBeneficiarios = new() { Minimum = 0, Maximum = 50000, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly DateTimePicker _dtFecha = new() { Format = DateTimePickerFormat.Short, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboEstado = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly CheckBox _chkEventoMes = new() { Text = "Contabilizar como Evento del Mes", Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly TextBox _txtDescripcion = new() { Multiline = true, Height = 68, Font = ThemeUnifranz.FuenteCuerpo };
 
-    public DialogoActividad(List<Proyecto> proyectos, ActividadRegistro? editar = null)
+    public DialogoActividad(
+        List<Proyecto> proyectos,
+        List<Sede> sedes,
+        List<Administrativo> administrativos,
+        ActividadRegistro? existente = null)
     {
-        _proyectos = proyectos;
-        _idExistente = editar?.Id ?? 0;
-        _codigoExistente = editar?.Codigo ?? string.Empty;
-
-        Text = editar is null ? "Nuevo Registro de Actividad" : $"Editar Registro #{editar.Codigo}";
-        ClientSize = new Size(520, 520);
+        Resultado = existente ?? new ActividadRegistro();
+        Text = existente is null ? "Nuevo Registro de Actividad" : $"Editar Actividad #{existente.Codigo}";
+        ClientSize = new Size(560, 520);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         BackColor = Color.White;
 
-        int y = 20;
-        Label CrearLbl(string txt, int x, int top) => new()
+        _cboProyecto.DataSource = proyectos;
+        _cboSede.DataSource = sedes;
+        _cboResponsable.DataSource = administrativos;
+        _cboEstado.Items.AddRange(Catalogos.EstadosActividad);
+
+        if (existente is not null)
         {
-            Text = txt,
-            Font = ThemeUnifranz.FuenteCuerpoBold,
-            ForeColor = ThemeUnifranz.TextoOscuro,
-            AutoSize = true,
-            Location = new Point(x, top)
-        };
+            var prj = proyectos.FirstOrDefault(p => p.Id == existente.ProyectoId);
+            if (prj is not null) _cboProyecto.SelectedItem = prj;
+            var sede = sedes.FirstOrDefault(s => s.Id == existente.SedeId);
+            if (sede is not null) _cboSede.SelectedItem = sede;
+            var adm = administrativos.FirstOrDefault(a => a.Id == existente.AdministrativoId);
+            if (adm is not null) _cboResponsable.SelectedItem = adm;
 
-        Controls.Add(CrearLbl("Proyecto institucional", 24, y));
-        _cmbProyecto = new ComboBox
-        {
-            Location = new Point(24, y + 22),
-            Width = 472,
-            DropDownStyle = ComboBoxStyle.DropDown,
-            Font = ThemeUnifranz.FuenteCuerpo
-        };
-        foreach (var p in _proyectos) _cmbProyecto.Items.Add(p);
-        Controls.Add(_cmbProyecto);
-
-        y += 66;
-        Controls.Add(CrearLbl("Responsable", 24, y));
-        _txtResponsable = new TextBox
-        {
-            Location = new Point(24, y + 22),
-            Width = 226,
-            Font = ThemeUnifranz.FuenteCuerpo
-        };
-        Controls.Add(_txtResponsable);
-
-        Controls.Add(CrearLbl("Fecha de ejecución", 270, y));
-        _dtpFecha = new DateTimePicker
-        {
-            Location = new Point(270, y + 22),
-            Width = 226,
-            Format = DateTimePickerFormat.Short,
-            Font = ThemeUnifranz.FuenteCuerpo
-        };
-        Controls.Add(_dtpFecha);
-
-        y += 64;
-        Controls.Add(CrearLbl("Categoría", 24, y));
-        _cmbCategoria = new ComboBox
-        {
-            Location = new Point(24, y + 22),
-            Width = 226,
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Font = ThemeUnifranz.FuenteCuerpo
-        };
-        _cmbCategoria.Items.AddRange(Catalogos.Categorias);
-        Controls.Add(_cmbCategoria);
-
-        Controls.Add(CrearLbl("Sede", 270, y));
-        _cmbSede = new ComboBox
-        {
-            Location = new Point(270, y + 22),
-            Width = 226,
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Font = ThemeUnifranz.FuenteCuerpo
-        };
-        _cmbSede.Items.AddRange(Catalogos.Sedes);
-        Controls.Add(_cmbSede);
-
-        y += 64;
-        Controls.Add(CrearLbl("Beneficiarios", 24, y));
-        _numBeneficiarios = new NumericUpDown
-        {
-            Location = new Point(24, y + 22),
-            Width = 226,
-            Maximum = 50000,
-            Value = 25,
-            Font = ThemeUnifranz.FuenteCuerpo
-        };
-        Controls.Add(_numBeneficiarios);
-
-        Controls.Add(CrearLbl("Estado", 270, y));
-        _cmbEstado = new ComboBox
-        {
-            Location = new Point(270, y + 22),
-            Width = 226,
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Font = ThemeUnifranz.FuenteCuerpo
-        };
-        _cmbEstado.Items.AddRange(Catalogos.EstadosActividad);
-        Controls.Add(_cmbEstado);
-
-        y += 62;
-        _chkEventoMes = new CheckBox
-        {
-            Text = "Contabilizar como evento destacado del mes",
-            Location = new Point(24, y),
-            AutoSize = true,
-            Checked = true,
-            Font = ThemeUnifranz.FuenteCuerpo
-        };
-        Controls.Add(_chkEventoMes);
-
-        y += 34;
-        Controls.Add(CrearLbl("Descripción y observaciones", 24, y));
-        _txtDescripcion = new TextBox
-        {
-            Location = new Point(24, y + 22),
-            Size = new Size(472, 74),
-            Multiline = true,
-            Font = ThemeUnifranz.FuenteCuerpo
-        };
-        Controls.Add(_txtDescripcion);
-
-        var btnCancelar = ThemeUnifranz.CrearBotonSecundario("Cancelar", 110, 36);
-        btnCancelar.Location = new Point(256, 464);
-        btnCancelar.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
-
-        var btnGuardar = ThemeUnifranz.CrearBotonPrimario("Guardar Registro", ThemeUnifranz.TealPrincipal, 124, 36);
-        btnGuardar.Location = new Point(372, 464);
-        btnGuardar.Click += (_, _) => Guardar();
-
-        Controls.Add(btnCancelar);
-        Controls.Add(btnGuardar);
-
-        // Autocompletar campos al elegir un proyecto del catalogo
-        _cmbProyecto.SelectedIndexChanged += (_, _) =>
-        {
-            if (_cmbProyecto.SelectedItem is Proyecto prj)
-            {
-                _cmbCategoria.SelectedItem = prj.Categoria;
-                _cmbSede.SelectedItem = prj.Sede;
-                if (string.IsNullOrWhiteSpace(_txtResponsable.Text))
-                    _txtResponsable.Text = prj.Responsable;
-            }
-        };
-
-        // Cargar valores iniciales o edicion
-        if (editar is not null)
-        {
-            var prjMatch = _proyectos.FirstOrDefault(p => p.Id == editar.ProyectoId);
-            if (prjMatch is not null) _cmbProyecto.SelectedItem = prjMatch;
-            else _cmbProyecto.Text = editar.ProyectoNombre;
-
-            _txtResponsable.Text = editar.Responsable;
-            _dtpFecha.Value = editar.Fecha;
-            _cmbCategoria.SelectedItem = editar.Categoria;
-            _cmbSede.SelectedItem = editar.Sede;
-            _numBeneficiarios.Value = Math.Min(50000, Math.Max(0, editar.Beneficiarios));
-            _cmbEstado.SelectedItem = editar.Estado;
-            _chkEventoMes.Checked = editar.EsEventoDelMes;
-            _txtDescripcion.Text = editar.Descripcion;
+            _txtTitulo.Text = existente.Titulo;
+            _numBeneficiarios.Value = Math.Clamp(existente.Beneficiarios, 0, 50000);
+            _dtFecha.Value = existente.Fecha;
+            _cboEstado.SelectedItem = existente.Estado;
+            _chkEventoMes.Checked = existente.EsEventoDelMes;
+            _txtDescripcion.Text = existente.Descripcion;
         }
         else
         {
-            if (_proyectos.Count > 0) _cmbProyecto.SelectedIndex = 0;
-            if (_cmbCategoria.SelectedIndex < 0) _cmbCategoria.SelectedIndex = 0;
-            if (_cmbSede.SelectedIndex < 0) _cmbSede.SelectedIndex = 0;
-            _cmbEstado.SelectedIndex = 0;
+            _cboEstado.SelectedIndex = 0;
+            _dtFecha.Value = DateTime.Today;
+            _numBeneficiarios.Value = 25;
         }
+
+        int y = 20;
+        AgregarFila("Proyecto asociado (FK):", _cboProyecto, ref y);
+        AgregarFila("Título de la actividad:", _txtTitulo, ref y);
+        AgregarFila("Sede de ejecución (FK):", _cboSede, ref y);
+        AgregarFila("Administrativo responsable (FK):", _cboResponsable, ref y);
+        AgregarFila("Estudiantes / Beneficiarios:", _numBeneficiarios, ref y);
+        AgregarFila("Fecha de ejecución:", _dtFecha, ref y);
+        AgregarFila("Estado:", _cboEstado, ref y);
+
+        _chkEventoMes.Location = new Point(210, y);
+        _chkEventoMes.AutoSize = true;
+        Controls.Add(_chkEventoMes);
+        y += 30;
+
+        AgregarFila("Descripción:", _txtDescripcion, ref y, 76);
+
+        var btnCancelar = ThemeUnifranz.CrearBotonSecundario("Cancelar", 115, 36);
+        btnCancelar.Location = new Point(290, 466);
+        btnCancelar.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
+
+        var btnGuardar = ThemeUnifranz.CrearBotonPrimario("Guardar Actividad", ThemeUnifranz.TealPrincipal, 138, 36);
+        btnGuardar.Location = new Point(412, 466);
+        btnGuardar.Click += (_, _) => Confirmar();
+
+        Controls.Add(btnCancelar);
+        Controls.Add(btnGuardar);
     }
 
-    private void Guardar()
+    private void AgregarFila(string etiqueta, Control ctrl, ref int y, int altura = 38)
     {
-        var prjSel = _cmbProyecto.SelectedItem as Proyecto;
-        string nombreProyecto = prjSel is not null ? prjSel.Nombre : _cmbProyecto.Text.Trim();
-
-        if (string.IsNullOrWhiteSpace(nombreProyecto) || string.IsNullOrWhiteSpace(_txtResponsable.Text))
+        Controls.Add(new Label
         {
-            MessageBox.Show("Completa el proyecto y el responsable antes de guardar.",
-                "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            Text = etiqueta,
+            Font = ThemeUnifranz.FuenteCuerpoBold,
+            ForeColor = ThemeUnifranz.TextoOscuro,
+            Location = new Point(24, y + 4),
+            Size = new Size(180, 24)
+        });
+        ctrl.Location = new Point(210, y);
+        ctrl.Width = 326;
+        Controls.Add(ctrl);
+        y += altura;
+    }
+
+    private void Confirmar()
+    {
+        if (_cboProyecto.SelectedItem is not Proyecto prj ||
+            _cboSede.SelectedItem is not Sede sede ||
+            _cboResponsable.SelectedItem is not Administrativo adm ||
+            string.IsNullOrWhiteSpace(_txtTitulo.Text))
+        {
+            MessageBox.Show("Completa proyecto, título, sede y responsable.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
-        Resultado = new ActividadRegistro
-        {
-            Id = _idExistente,
-            Codigo = _codigoExistente,
-            ProyectoId = prjSel?.Id,
-            ProyectoNombre = nombreProyecto,
-            Categoria = _cmbCategoria.SelectedItem?.ToString() ?? Catalogos.Categorias[0],
-            Responsable = _txtResponsable.Text.Trim(),
-            Sede = _cmbSede.SelectedItem?.ToString() ?? Catalogos.Sedes[0],
-            Beneficiarios = (int)_numBeneficiarios.Value,
-            Fecha = _dtpFecha.Value.Date,
-            Estado = _cmbEstado.SelectedItem?.ToString() ?? "Activo",
-            EsEventoDelMes = _chkEventoMes.Checked,
-            Descripcion = _txtDescripcion.Text.Trim()
-        };
+        Resultado.ProyectoId = prj.Id;
+        Resultado.ProyectoNombre = prj.Nombre;
+        Resultado.SedeId = sede.Id;
+        Resultado.SedeNombre = sede.Nombre;
+        Resultado.AdministrativoId = adm.Id;
+        Resultado.ResponsableNombre = adm.NombreCompleto;
+        Resultado.Titulo = _txtTitulo.Text.Trim();
+        Resultado.Beneficiarios = (int)_numBeneficiarios.Value;
+        Resultado.Fecha = _dtFecha.Value.Date;
+        Resultado.Estado = _cboEstado.SelectedItem?.ToString() ?? "Activo";
+        Resultado.EsEventoDelMes = _chkEventoMes.Checked;
+        Resultado.Descripcion = _txtDescripcion.Text.Trim();
 
         DialogResult = DialogResult.OK;
         Close();
@@ -232,167 +141,126 @@ public sealed class DialogoActividad : Form
 }
 
 // ----------------------------------------------------------------------------
-// 2. DIALOGO CREAR / EDITAR PROYECTO
+// 2. DIALOGO CREAR / EDITAR PROYECTO (CONVOCATORIA / PROGRAMA DE BECA)
 // ----------------------------------------------------------------------------
 public sealed class DialogoProyecto : Form
 {
-    private readonly TextBox _txtNombre;
-    private readonly ComboBox _cmbCategoria;
-    private readonly ComboBox _cmbSede;
-    private readonly TextBox _txtResponsable;
-    private readonly ComboBox _cmbEstado;
-    private readonly DateTimePicker _dtpInicio;
-    private readonly DateTimePicker _dtpFin;
-    private readonly NumericUpDown _numActuales;
-    private readonly NumericUpDown _numMeta;
-    private readonly NumericUpDown _numPresupuesto;
-    private readonly NumericUpDown _numEjecutado;
-    private readonly TextBox _txtDescripcion;
-    private readonly int _idExistente;
-    private readonly string _codigoExistente;
+    public Proyecto Resultado { get; private set; }
 
-    public Proyecto Resultado { get; private set; } = new();
+    private readonly TextBox _txtNombre = new() { Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboCategoria = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboSede = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboResponsable = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly DateTimePicker _dtInicio = new() { Format = DateTimePickerFormat.Short, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly DateTimePicker _dtFin = new() { Format = DateTimePickerFormat.Short, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly NumericUpDown _numMeta = new() { Minimum = 1, Maximum = 50000, Value = 100, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly NumericUpDown _numPresupuesto = new() { Minimum = 0, Maximum = 10000000, DecimalPlaces = 2, Increment = 1000, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboEstado = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly TextBox _txtDescripcion = new() { Multiline = true, Height = 64, Font = ThemeUnifranz.FuenteCuerpo };
 
-    public DialogoProyecto(Proyecto? editar = null)
+    public DialogoProyecto(List<Sede> sedes, List<Administrativo> administrativos, Proyecto? existente = null)
     {
-        _idExistente = editar?.Id ?? 0;
-        _codigoExistente = editar?.Codigo ?? string.Empty;
-
-        Text = editar is null ? "Nuevo Proyecto Institucional" : $"Editar Proyecto {editar.Codigo}";
-        ClientSize = new Size(560, 580);
+        Resultado = existente ?? new Proyecto();
+        Text = existente is null ? "Nuevo Proyecto / Convocatoria" : $"Editar Proyecto {existente.Codigo}";
+        ClientSize = new Size(560, 520);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         BackColor = Color.White;
 
-        Label Lbl(string t, int x, int y) => new()
+        _cboCategoria.Items.AddRange(Catalogos.Categorias);
+        _cboSede.DataSource = sedes;
+        _cboResponsable.DataSource = administrativos;
+        _cboEstado.Items.AddRange(Catalogos.EstadosProyecto);
+
+        if (existente is not null)
         {
-            Text = t,
-            Font = ThemeUnifranz.FuenteCuerpoBold,
-            ForeColor = ThemeUnifranz.TextoOscuro,
-            AutoSize = true,
-            Location = new Point(x, y)
-        };
+            _txtNombre.Text = existente.Nombre;
+            _cboCategoria.SelectedItem = existente.Categoria;
+            var sede = sedes.FirstOrDefault(s => s.Id == existente.SedeId);
+            if (sede is not null) _cboSede.SelectedItem = sede;
+            var adm = administrativos.FirstOrDefault(a => a.Id == existente.AdministrativoId);
+            if (adm is not null) _cboResponsable.SelectedItem = adm;
 
-        int y = 18;
-        Controls.Add(Lbl("Nombre del proyecto", 24, y));
-        _txtNombre = new TextBox { Location = new Point(24, y + 22), Width = 512, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_txtNombre);
-
-        y += 60;
-        Controls.Add(Lbl("Categoría", 24, y));
-        _cmbCategoria = new ComboBox { Location = new Point(24, y + 22), Width = 246, DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
-        _cmbCategoria.Items.AddRange(Catalogos.Categorias);
-        Controls.Add(_cmbCategoria);
-
-        Controls.Add(Lbl("Sede principal", 290, y));
-        _cmbSede = new ComboBox { Location = new Point(290, y + 22), Width = 246, DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
-        _cmbSede.Items.AddRange(Catalogos.Sedes);
-        Controls.Add(_cmbSede);
-
-        y += 60;
-        Controls.Add(Lbl("Coordinador responsable", 24, y));
-        _txtResponsable = new TextBox { Location = new Point(24, y + 22), Width = 246, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_txtResponsable);
-
-        Controls.Add(Lbl("Estado", 290, y));
-        _cmbEstado = new ComboBox { Location = new Point(290, y + 22), Width = 246, DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
-        _cmbEstado.Items.AddRange(Catalogos.EstadosProyecto);
-        Controls.Add(_cmbEstado);
-
-        y += 60;
-        Controls.Add(Lbl("Fecha de inicio", 24, y));
-        _dtpInicio = new DateTimePicker { Location = new Point(24, y + 22), Width = 246, Format = DateTimePickerFormat.Short, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_dtpInicio);
-
-        Controls.Add(Lbl("Fecha estimada de cierre", 290, y));
-        _dtpFin = new DateTimePicker { Location = new Point(290, y + 22), Width = 246, Format = DateTimePickerFormat.Short, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_dtpFin);
-
-        y += 60;
-        Controls.Add(Lbl("Beneficiarios actuales", 24, y));
-        _numActuales = new NumericUpDown { Location = new Point(24, y + 22), Width = 246, Maximum = 100000, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_numActuales);
-
-        Controls.Add(Lbl("Meta de beneficiarios", 290, y));
-        _numMeta = new NumericUpDown { Location = new Point(290, y + 22), Width = 246, Minimum = 1, Maximum = 100000, Value = 80, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_numMeta);
-
-        y += 60;
-        Controls.Add(Lbl("Presupuesto asignado (Bs.)", 24, y));
-        _numPresupuesto = new NumericUpDown { Location = new Point(24, y + 22), Width = 246, Maximum = 50000000, Increment = 1000, Value = 60000, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_numPresupuesto);
-
-        Controls.Add(Lbl("Presupuesto ejecutado (Bs.)", 290, y));
-        _numEjecutado = new NumericUpDown { Location = new Point(290, y + 22), Width = 246, Maximum = 50000000, Increment = 1000, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_numEjecutado);
-
-        y += 60;
-        Controls.Add(Lbl("Descripción del alcance", 24, y));
-        _txtDescripcion = new TextBox { Location = new Point(24, y + 22), Size = new Size(512, 72), Multiline = true, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_txtDescripcion);
-
-        var btnCancelar = ThemeUnifranz.CrearBotonSecundario("Cancelar", 110, 36);
-        btnCancelar.Location = new Point(292, 526);
-        btnCancelar.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
-
-        var btnGuardar = ThemeUnifranz.CrearBotonPrimario("Guardar Proyecto", ThemeUnifranz.TealPrincipal, 128, 36);
-        btnGuardar.Location = new Point(408, 526);
-        btnGuardar.Click += (_, _) => Guardar();
-
-        Controls.Add(btnCancelar);
-        Controls.Add(btnGuardar);
-
-        if (editar is not null)
-        {
-            _txtNombre.Text = editar.Nombre;
-            _cmbCategoria.SelectedItem = editar.Categoria;
-            _cmbSede.SelectedItem = editar.Sede;
-            _txtResponsable.Text = editar.Responsable;
-            _cmbEstado.SelectedItem = editar.Estado;
-            _dtpInicio.Value = editar.FechaInicio;
-            _dtpFin.Value = editar.FechaFin;
-            _numActuales.Value = editar.BeneficiariosActuales;
-            _numMeta.Value = Math.Max(1, editar.BeneficiariosMeta);
-            _numPresupuesto.Value = editar.PresupuestoBs;
-            _numEjecutado.Value = editar.EjecutadoBs;
-            _txtDescripcion.Text = editar.Descripcion;
+            _dtInicio.Value = existente.FechaInicio;
+            _dtFin.Value = existente.FechaFin;
+            _numMeta.Value = Math.Clamp(existente.BeneficiariosMeta, 1, 50000);
+            _numPresupuesto.Value = Math.Clamp(existente.PresupuestoBs, 0, 10000000);
+            _cboEstado.SelectedItem = existente.Estado;
+            _txtDescripcion.Text = existente.Descripcion;
         }
         else
         {
-            _cmbCategoria.SelectedIndex = 0;
-            _cmbSede.SelectedIndex = 0;
-            _cmbEstado.SelectedIndex = 0;
-            _dtpFin.Value = DateTime.Today.AddMonths(6);
+            _cboCategoria.SelectedIndex = 0;
+            _cboEstado.SelectedIndex = 0;
+            _dtInicio.Value = DateTime.Today;
+            _dtFin.Value = DateTime.Today.AddMonths(6);
+            _numPresupuesto.Value = 50000;
         }
+
+        int y = 20;
+        AgregarFila("Nombre del proyecto:", _txtNombre, ref y);
+        AgregarFila("Área / Categoría:", _cboCategoria, ref y);
+        AgregarFila("Sede (FK SedeId):", _cboSede, ref y);
+        AgregarFila("Responsable (FK AdminId):", _cboResponsable, ref y);
+        AgregarFila("Fecha de inicio:", _dtInicio, ref y);
+        AgregarFila("Fecha de cierre:", _dtFin, ref y);
+        AgregarFila("Meta de beneficiarios:", _numMeta, ref y);
+        AgregarFila("Presupuesto (Bs):", _numPresupuesto, ref y);
+        AgregarFila("Estado:", _cboEstado, ref y);
+        AgregarFila("Descripción:", _txtDescripcion, ref y, 70);
+
+        var btnCancelar = ThemeUnifranz.CrearBotonSecundario("Cancelar", 115, 36);
+        btnCancelar.Location = new Point(290, 466);
+        btnCancelar.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
+
+        var btnGuardar = ThemeUnifranz.CrearBotonPrimario("Guardar Proyecto", ThemeUnifranz.TealPrincipal, 138, 36);
+        btnGuardar.Location = new Point(412, 466);
+        btnGuardar.Click += (_, _) => Confirmar();
+
+        Controls.Add(btnCancelar);
+        Controls.Add(btnGuardar);
     }
 
-    private void Guardar()
+    private void AgregarFila(string etiqueta, Control ctrl, ref int y, int altura = 36)
     {
-        if (string.IsNullOrWhiteSpace(_txtNombre.Text) || string.IsNullOrWhiteSpace(_txtResponsable.Text))
+        Controls.Add(new Label
         {
-            MessageBox.Show("Completa el nombre del proyecto y el responsable.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            Text = etiqueta,
+            Font = ThemeUnifranz.FuenteCuerpoBold,
+            ForeColor = ThemeUnifranz.TextoOscuro,
+            Location = new Point(24, y + 4),
+            Size = new Size(180, 24)
+        });
+        ctrl.Location = new Point(210, y);
+        ctrl.Width = 326;
+        Controls.Add(ctrl);
+        y += altura;
+    }
+
+    private void Confirmar()
+    {
+        if (string.IsNullOrWhiteSpace(_txtNombre.Text) ||
+            _cboSede.SelectedItem is not Sede sede ||
+            _cboResponsable.SelectedItem is not Administrativo adm)
+        {
+            MessageBox.Show("Completa el nombre, la sede y el administrativo responsable.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
-        Resultado = new Proyecto
-        {
-            Id = _idExistente,
-            Codigo = _codigoExistente,
-            Nombre = _txtNombre.Text.Trim(),
-            Categoria = _cmbCategoria.SelectedItem?.ToString() ?? Catalogos.Categorias[0],
-            Sede = _cmbSede.SelectedItem?.ToString() ?? Catalogos.Sedes[0],
-            Responsable = _txtResponsable.Text.Trim(),
-            Estado = _cmbEstado.SelectedItem?.ToString() ?? "Activo",
-            FechaInicio = _dtpInicio.Value.Date,
-            FechaFin = _dtpFin.Value.Date,
-            BeneficiariosActuales = (int)_numActuales.Value,
-            BeneficiariosMeta = (int)_numMeta.Value,
-            PresupuestoBs = _numPresupuesto.Value,
-            EjecutadoBs = _numEjecutado.Value,
-            Descripcion = _txtDescripcion.Text.Trim()
-        };
+        Resultado.Nombre = _txtNombre.Text.Trim();
+        Resultado.Categoria = _cboCategoria.SelectedItem?.ToString() ?? "Becas y Apoyo";
+        Resultado.SedeId = sede.Id;
+        Resultado.SedeNombre = sede.Nombre;
+        Resultado.AdministrativoId = adm.Id;
+        Resultado.ResponsableNombre = adm.NombreCompleto;
+        Resultado.FechaInicio = _dtInicio.Value.Date;
+        Resultado.FechaFin = _dtFin.Value.Date;
+        Resultado.BeneficiariosMeta = (int)_numMeta.Value;
+        Resultado.PresupuestoBs = _numPresupuesto.Value;
+        Resultado.Estado = _cboEstado.SelectedItem?.ToString() ?? "Activo";
+        Resultado.Descripcion = _txtDescripcion.Text.Trim();
 
         DialogResult = DialogResult.OK;
         Close();
@@ -400,133 +268,285 @@ public sealed class DialogoProyecto : Form
 }
 
 // ----------------------------------------------------------------------------
-// 3. DIALOGO CREAR / EDITAR USUARIO
+// 3. DIALOGO CREAR / EDITAR USUARIO (CREA ESTUDIANTE O ADMINISTRATIVO)
 // ----------------------------------------------------------------------------
 public sealed class DialogoUsuario : Form
 {
-    private readonly TextBox _txtNombre;
-    private readonly TextBox _txtUsername;
-    private readonly TextBox _txtPassword;
-    private readonly TextBox _txtCorreo;
-    private readonly ComboBox _cmbRol;
-    private readonly ComboBox _cmbSede;
-    private readonly CheckBox _chkActivo;
-    private readonly int _idExistente;
+    public Usuario Resultado { get; private set; }
+    public string PasswordPlano => _txtPassword.Text;
+    public string DetallePerfil => _txtPerfilExtra.Text.Trim();
 
-    public Usuario ResultadoUsuario { get; private set; } = new();
-    public string? PasswordIngresada { get; private set; }
+    private readonly TextBox _txtUsername = new() { Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly TextBox _txtNombre = new() { Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly TextBox _txtCorreo = new() { Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboRol = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboSede = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly TextBox _txtPerfilExtra = new() { Font = ThemeUnifranz.FuenteCuerpo, PlaceholderText = "Carrera (si Estudiante) o Cargo (si Admin)" };
+    private readonly TextBox _txtPassword = new() { Font = ThemeUnifranz.FuenteCuerpo, UseSystemPasswordChar = true };
+    private readonly CheckBox _chkActivo = new() { Text = "Cuenta activa", Checked = true, Font = ThemeUnifranz.FuenteCuerpo };
 
-    public DialogoUsuario(Usuario? editar = null)
+    public DialogoUsuario(List<Rol> roles, List<Sede> sedes, Usuario? existente = null)
     {
-        _idExistente = editar?.Id ?? 0;
-
-        Text = editar is null ? "Registrar Nuevo Usuario" : $"Editar Usuario ({editar.Username})";
-        ClientSize = new Size(480, 420);
+        Resultado = existente ?? new Usuario();
+        Text = existente is null ? "Nuevo Usuario del Sistema" : $"Editar Usuario: {existente.Username}";
+        ClientSize = new Size(520, 420);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         BackColor = Color.White;
 
-        Label Lbl(string t, int x, int y) => new()
+        _cboRol.DataSource = roles;
+        _cboSede.DataSource = sedes;
+
+        if (existente is not null)
         {
-            Text = t,
-            Font = ThemeUnifranz.FuenteCuerpoBold,
-            ForeColor = ThemeUnifranz.TextoOscuro,
-            AutoSize = true,
-            Location = new Point(x, y)
-        };
-
-        int y = 20;
-        Controls.Add(Lbl("Nombre completo", 24, y));
-        _txtNombre = new TextBox { Location = new Point(24, y + 22), Width = 432, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_txtNombre);
-
-        y += 62;
-        Controls.Add(Lbl("Usuario de acceso", 24, y));
-        _txtUsername = new TextBox { Location = new Point(24, y + 22), Width = 206, Font = ThemeUnifranz.FuenteMono };
-        Controls.Add(_txtUsername);
-
-        Controls.Add(Lbl(editar is null ? "Contraseña inicial" : "Nueva contraseña (opcional)", 250, y));
-        _txtPassword = new TextBox
-        {
-            Location = new Point(250, y + 22),
-            Width = 206,
-            Font = ThemeUnifranz.FuenteMono,
-            PlaceholderText = editar is null ? "unifranz2026" : "Dejar vacío para mantener"
-        };
-        Controls.Add(_txtPassword);
-
-        y += 62;
-        Controls.Add(Lbl("Correo institucional", 24, y));
-        _txtCorreo = new TextBox { Location = new Point(24, y + 22), Width = 432, Font = ThemeUnifranz.FuenteCuerpo };
-        Controls.Add(_txtCorreo);
-
-        y += 62;
-        Controls.Add(Lbl("Rol asignado", 24, y));
-        _cmbRol = new ComboBox { Location = new Point(24, y + 22), Width = 206, DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
-        _cmbRol.Items.AddRange(Catalogos.Roles);
-        Controls.Add(_cmbRol);
-
-        Controls.Add(Lbl("Sede", 250, y));
-        _cmbSede = new ComboBox { Location = new Point(250, y + 22), Width = 206, DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
-        _cmbSede.Items.AddRange(Catalogos.Sedes);
-        Controls.Add(_cmbSede);
-
-        y += 62;
-        _chkActivo = new CheckBox
-        {
-            Text = "Cuenta activa (habilitada para iniciar sesión)",
-            Location = new Point(24, y),
-            AutoSize = true,
-            Checked = true,
-            Font = ThemeUnifranz.FuenteCuerpo
-        };
-        Controls.Add(_chkActivo);
-
-        var btnCancelar = ThemeUnifranz.CrearBotonSecundario("Cancelar", 110, 36);
-        btnCancelar.Location = new Point(220, 364);
-        btnCancelar.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
-
-        var btnGuardar = ThemeUnifranz.CrearBotonPrimario("Guardar Usuario", ThemeUnifranz.TealPrincipal, 120, 36);
-        btnGuardar.Location = new Point(336, 364);
-        btnGuardar.Click += (_, _) => Guardar();
-
-        Controls.Add(btnCancelar);
-        Controls.Add(btnGuardar);
-
-        if (editar is not null)
-        {
-            _txtNombre.Text = editar.NombreCompleto;
-            _txtUsername.Text = editar.Username;
-            _txtCorreo.Text = editar.Correo;
-            _cmbRol.SelectedItem = editar.Rol;
-            _cmbSede.SelectedItem = editar.Sede;
-            _chkActivo.Checked = editar.Activo;
+            _txtUsername.Text = existente.Username;
+            _txtNombre.Text = existente.NombreCompleto;
+            _txtCorreo.Text = existente.Correo;
+            var rol = roles.FirstOrDefault(r => r.Id == existente.RolId);
+            if (rol is not null) _cboRol.SelectedItem = rol;
+            var sede = sedes.FirstOrDefault(s => s.Id == existente.SedeId);
+            if (sede is not null) _cboSede.SelectedItem = sede;
+            _chkActivo.Checked = existente.Activo;
+            _txtPassword.PlaceholderText = "Dejar vacío para conservar la contraseña actual";
+            _txtPerfilExtra.Enabled = false;
         }
         else
         {
-            _cmbRol.SelectedIndex = 1;
-            _cmbSede.SelectedIndex = 0;
-            _txtPassword.Text = "unifranz2026";
+            _txtPassword.PlaceholderText = "Mínimo 6 caracteres";
         }
+
+        int y = 20;
+        AgregarFila("Nombre de usuario:", _txtUsername, ref y);
+        AgregarFila("Nombre completo:", _txtNombre, ref y);
+        AgregarFila("Correo institucional:", _txtCorreo, ref y);
+        AgregarFila("Rol (FK RolId):", _cboRol, ref y);
+        AgregarFila("Sede (FK SedeId):", _cboSede, ref y);
+        AgregarFila("Carrera / Cargo:", _txtPerfilExtra, ref y);
+        AgregarFila("Contraseña:", _txtPassword, ref y);
+
+        _chkActivo.Location = new Point(190, y + 4);
+        _chkActivo.AutoSize = true;
+        Controls.Add(_chkActivo);
+
+        var btnCancelar = ThemeUnifranz.CrearBotonSecundario("Cancelar", 110, 36);
+        btnCancelar.Location = new Point(265, 366);
+        btnCancelar.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
+
+        var btnGuardar = ThemeUnifranz.CrearBotonPrimario("Guardar", ThemeUnifranz.TealPrincipal, 120, 36);
+        btnGuardar.Location = new Point(382, 366);
+        btnGuardar.Click += (_, _) => Confirmar();
+
+        Controls.Add(btnCancelar);
+        Controls.Add(btnGuardar);
     }
 
-    private void Guardar()
+    private void AgregarFila(string etiqueta, Control ctrl, ref int y)
     {
-        ResultadoUsuario = new Usuario
+        Controls.Add(new Label
         {
-            Id = _idExistente,
-            NombreCompleto = _txtNombre.Text.Trim(),
-            Username = _txtUsername.Text.Trim(),
-            Correo = _txtCorreo.Text.Trim(),
-            Rol = _cmbRol.SelectedItem?.ToString() ?? "Coordinador",
-            Sede = _cmbSede.SelectedItem?.ToString() ?? "La Paz",
-            Activo = _chkActivo.Checked
-        };
-        PasswordIngresada = string.IsNullOrWhiteSpace(_txtPassword.Text) ? null : _txtPassword.Text;
+            Text = etiqueta,
+            Font = ThemeUnifranz.FuenteCuerpoBold,
+            ForeColor = ThemeUnifranz.TextoOscuro,
+            Location = new Point(24, y + 4),
+            Size = new Size(160, 24)
+        });
+        ctrl.Location = new Point(190, y);
+        ctrl.Width = 306;
+        Controls.Add(ctrl);
+        y += 40;
+    }
+
+    private void Confirmar()
+    {
+        if (string.IsNullOrWhiteSpace(_txtUsername.Text) ||
+            string.IsNullOrWhiteSpace(_txtNombre.Text) ||
+            _cboRol.SelectedItem is not Rol rol ||
+            _cboSede.SelectedItem is not Sede sede)
+        {
+            MessageBox.Show("Completa usuario, nombre, rol y sede.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        Resultado.Username = _txtUsername.Text.Trim();
+        Resultado.NombreCompleto = _txtNombre.Text.Trim();
+        Resultado.Correo = _txtCorreo.Text.Trim();
+        Resultado.RolId = rol.Id;
+        Resultado.RolNombre = rol.Nombre;
+        Resultado.SedeId = sede.Id;
+        Resultado.SedeNombre = sede.Nombre;
+        Resultado.Activo = _chkActivo.Checked;
 
         DialogResult = DialogResult.OK;
         Close();
+    }
+}
+
+// ----------------------------------------------------------------------------
+// 4. DIALOGO POSTULACION A BECA (MODO ESTUDIANTE)
+// ----------------------------------------------------------------------------
+public sealed class DialogoPostulacionBeca : Form
+{
+    public int PorcentajeSolicitado { get; private set; } = 50;
+    public decimal MontoEstimadoBs { get; private set; } = 2800m;
+    public string Justificacion => _txtJustificacion.Text.Trim();
+
+    private readonly ComboBox _cboPorcentaje = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly NumericUpDown _numMonto = new() { Minimum = 500, Maximum = 50000, Value = 2800, DecimalPlaces = 2, Increment = 200, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly TextBox _txtJustificacion = new() { Multiline = true, Height = 85, Font = ThemeUnifranz.FuenteCuerpo };
+
+    public DialogoPostulacionBeca(Proyecto proyecto, Estudiante estudiante)
+    {
+        Text = "Postulación a Beca — Portal Estudiantil";
+        ClientSize = new Size(520, 360);
+        StartPosition = FormStartPosition.CenterParent;
+        FormBorderStyle = FormBorderStyle.FixedDialog;
+        MaximizeBox = false;
+        MinimizeBox = false;
+        BackColor = Color.White;
+
+        var lblHeader = new Label
+        {
+            Text = $"Programa: {proyecto.Nombre} ({proyecto.SedeNombre})\nEstudiante: {estudiante.NombreCompleto} · {estudiante.Carrera} (Prom. {estudiante.Promedio:N1})",
+            Font = ThemeUnifranz.FuenteCuerpoBold,
+            ForeColor = ThemeUnifranz.TealSidebar,
+            Location = new Point(24, 18),
+            Size = new Size(472, 46)
+        };
+        Controls.Add(lblHeader);
+
+        _cboPorcentaje.Items.AddRange(new object[] { 25, 50, 75, 100 });
+        _cboPorcentaje.SelectedItem = 50;
+
+        int y = 78;
+        AgregarFila("Porcentaje solicitado (%):", _cboPorcentaje, ref y);
+        AgregarFila("Monto semestral (Bs):", _numMonto, ref y);
+        AgregarFila("Motivo / Justificación:", _txtJustificacion, ref y, 95);
+
+        var btnCancelar = ThemeUnifranz.CrearBotonSecundario("Cancelar", 110, 36);
+        btnCancelar.Location = new Point(248, 304);
+        btnCancelar.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
+
+        var btnEnviar = ThemeUnifranz.CrearBotonPrimario("Enviar Postulación", ThemeUnifranz.CoralAcento, 145, 36);
+        btnEnviar.Location = new Point(364, 304);
+        btnEnviar.Click += (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(_txtJustificacion.Text))
+            {
+                MessageBox.Show("Describe brevemente tu situación o mérito académico.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            PorcentajeSolicitado = Convert.ToInt32(_cboPorcentaje.SelectedItem ?? 50);
+            MontoEstimadoBs = _numMonto.Value;
+            DialogResult = DialogResult.OK;
+            Close();
+        };
+
+        Controls.Add(btnCancelar);
+        Controls.Add(btnEnviar);
+    }
+
+    private void AgregarFila(string etiqueta, Control ctrl, ref int y, int altura = 42)
+    {
+        Controls.Add(new Label
+        {
+            Text = etiqueta,
+            Font = ThemeUnifranz.FuenteCuerpoBold,
+            ForeColor = ThemeUnifranz.TextoOscuro,
+            Location = new Point(24, y + 4),
+            Size = new Size(175, 24)
+        });
+        ctrl.Location = new Point(205, y);
+        ctrl.Width = 290;
+        Controls.Add(ctrl);
+        y += altura;
+    }
+}
+
+// ----------------------------------------------------------------------------
+// 5. DIALOGO REGISTRO DE MOVIMIENTO FINANCIERO (MODULO FINANZAS)
+// ----------------------------------------------------------------------------
+public sealed class DialogoMovimientoFinanciero : Form
+{
+    public MovimientoFinanciero Resultado { get; private set; } = new();
+
+    private readonly ComboBox _cboProyecto = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboResponsable = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly ComboBox _cboTipo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly TextBox _txtConcepto = new() { Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly NumericUpDown _numMonto = new() { Minimum = 1, Maximum = 10000000, Value = 1500, DecimalPlaces = 2, Increment = 100, Font = ThemeUnifranz.FuenteCuerpo };
+    private readonly DateTimePicker _dtFecha = new() { Format = DateTimePickerFormat.Short, Font = ThemeUnifranz.FuenteCuerpo };
+
+    public DialogoMovimientoFinanciero(List<Proyecto> proyectos, List<Administrativo> administrativos)
+    {
+        Text = "Registrar Movimiento Financiero (Ingreso / Egreso)";
+        ClientSize = new Size(530, 355);
+        StartPosition = FormStartPosition.CenterParent;
+        FormBorderStyle = FormBorderStyle.FixedDialog;
+        MaximizeBox = false;
+        MinimizeBox = false;
+        BackColor = Color.White;
+
+        _cboProyecto.DataSource = proyectos;
+        _cboResponsable.DataSource = administrativos;
+        _cboTipo.Items.AddRange(Catalogos.TiposMovimiento);
+        _cboTipo.SelectedIndex = 1; // Egreso por defecto
+        _dtFecha.Value = DateTime.Today;
+
+        int y = 24;
+        AgregarFila("Proyecto (FK ProyectoId):", _cboProyecto, ref y);
+        AgregarFila("Administrativo (FK):", _cboResponsable, ref y);
+        AgregarFila("Tipo de movimiento:", _cboTipo, ref y);
+        AgregarFila("Concepto / Glosa:", _txtConcepto, ref y);
+        AgregarFila("Monto (Bs):", _numMonto, ref y);
+        AgregarFila("Fecha comprobante:", _dtFecha, ref y);
+
+        var btnCancelar = ThemeUnifranz.CrearBotonSecundario("Cancelar", 110, 36);
+        btnCancelar.Location = new Point(265, 298);
+        btnCancelar.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
+
+        var btnGuardar = ThemeUnifranz.CrearBotonPrimario("Guardar Comprobante", ThemeUnifranz.TealPrincipal, 145, 36);
+        btnGuardar.Location = new Point(382, 298);
+        btnGuardar.Click += (_, _) =>
+        {
+            if (_cboProyecto.SelectedItem is not Proyecto prj ||
+                _cboResponsable.SelectedItem is not Administrativo adm ||
+                string.IsNullOrWhiteSpace(_txtConcepto.Text))
+            {
+                MessageBox.Show("Completa proyecto, responsable y concepto.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            Resultado = new MovimientoFinanciero
+            {
+                ProyectoId = prj.Id,
+                AdministrativoId = adm.Id,
+                Tipo = _cboTipo.SelectedItem?.ToString() ?? "Egreso",
+                Concepto = _txtConcepto.Text.Trim(),
+                MontoBs = _numMonto.Value,
+                FechaMovimiento = _dtFecha.Value.Date
+            };
+            DialogResult = DialogResult.OK;
+            Close();
+        };
+
+        Controls.Add(btnCancelar);
+        Controls.Add(btnGuardar);
+    }
+
+    private void AgregarFila(string etiqueta, Control ctrl, ref int y)
+    {
+        Controls.Add(new Label
+        {
+            Text = etiqueta,
+            Font = ThemeUnifranz.FuenteCuerpoBold,
+            ForeColor = ThemeUnifranz.TextoOscuro,
+            Location = new Point(24, y + 4),
+            Size = new Size(175, 24)
+        });
+        ctrl.Location = new Point(205, y);
+        ctrl.Width = 300;
+        Controls.Add(ctrl);
+        y += 42;
     }
 }

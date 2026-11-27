@@ -2,18 +2,28 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <!-- Compatible con Visual Studio (.NET 10 / .NET 9 / .NET 8).
+         Ejecutar_FundacionUnifranz.bat detecta tu SDK automaticamente. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>FundacionUnifranz</RootNamespace>
     <AssemblyName>FundacionUnifranz</AssemblyName>
+    <StartupObject>FundacionUnifranz.Program</StartupObject>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <NoWarn>$(NoWarn);WFO1000</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Base de datos SQLite integrada (sin servidor externo) -->
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+    <!-- Conector oficial de Microsoft SQL Server -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

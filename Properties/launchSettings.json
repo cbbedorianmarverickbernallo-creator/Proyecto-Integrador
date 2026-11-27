@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FundacionUnifranz": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

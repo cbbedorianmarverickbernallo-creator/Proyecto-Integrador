@@ -1,0 +1,20 @@
+{
+  "nombreInstitucion": "FUNDACIÓN UNIFRANZ",
+  "tituloSistema": "Sistema de Gestión",
+  "subtituloLogin": "Transformando comunidades con educación e impacto social",
+  "mensajeBienvenida": "Bienvenido",
+  "avisoGlobal": "",
+  "colorPrimario": "#007B8F",
+  "colorSidebar": "#064A57",
+  "colorAcento": "#E65A28",
+  "colorFondo": "#F8FAFC",
+  "sedesActivas": [
+    "La Paz",
+    "Cochabamba",
+    "Santa Cruz",
+    "El Alto"
+  ],
+  "version": 2,
+  "updatedAt": "2026-11-27T15:33:49.971Z",
+  "urlServidorSync": "https://ais-dev-4uc43x4xbcve4awtqb7o2a-185409884174.us-west2.run.app"
+}
